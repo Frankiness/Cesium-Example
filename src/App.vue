@@ -1,9 +1,10 @@
 <template>
-  <HelloWorld msg="Hello Vue 3 + Vite + cesium" />
+  <Navigation />
+  <router-view></router-view>
 </template>
 
 <script setup>
-import HelloWorld from "./components/HelloWorld.vue";
+import Navigation from "./components/Navigation.vue";
 </script>
 
 <style></style>

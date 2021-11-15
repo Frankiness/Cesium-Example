@@ -1,11 +1,15 @@
 <template>
-  <div id="cesium-container"></div>
+  <div id="cesium-container">22222222</div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
 import * as Cesium from "cesium";
-import Distance from "../assets/js/test";
+// import Distance from "../assets/js/test";
+import DrawPoint from "../assets/js/drawPoint";
+import DrawLine from "../assets/js/drawLine";
+import DrawCurve from "../assets/js/drawCurve";
+import DrawArrow from "../assets/js/drawArrow";
 const initEarth = () => {
   const viewer = new Cesium.Viewer("cesium-container", {
     animation: false, //是否创建动画小器件，左下角仪表
@@ -34,21 +38,28 @@ const initEarth = () => {
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(-117.16, 32.71, 15000.0),
   });
-  Distance(viewer, {}, Cesium);
-  window.Cesium = Cesium;
-  window.viewer = viewer;
+  // Distance(viewer, {}, Cesium);
+  let cb = () => {
+    console.log("绘制完成");
+  };
+  let point = new DrawArrow({
+    viewer,
+    Cesium,
+    callback: cb,
+  });
+  point.startCreate();
 };
 const distance = () => {};
 onMounted(() => {
-  initEarth();
-  distance();
+  // initEarth();
+  // distance();
 });
 </script>
 
 <style scoped>
 #cesium-container {
-  width: 100%;
-  height: 100%;
+  /* width: 100%;
+  height: 100%; */
   margin: 0;
 }
 </style>
