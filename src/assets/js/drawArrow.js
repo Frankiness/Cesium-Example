@@ -6,6 +6,7 @@ class DrawstraightArrow {
   constructor(arg) {
     this.viewer = arg.viewer;
     this.Cesium = arg.Cesium;
+    this.callback = arg.callback;
     this.floatingPoint = null; //标识点
     this._straightArrow = null; //活动箭头
     this._straightArrowLast = null; //最后一个箭头
@@ -27,31 +28,31 @@ class DrawstraightArrow {
 
   //加载箭头
   loadStraightArrow(data) {
-    var $this = this;
+    var self = this;
     if (data.length < 2) {
       return null;
     }
     var length = data.length;
     var p1 = data[0];
     var p2 = data[length - 1];
-    var firstPoint = $this.cartesianToLatlng(p1);
-    var endPoints = $this.cartesianToLatlng(p2);
+    var firstPoint = self.cartesianToLatlng(p1);
+    var endPoints = self.cartesianToLatlng(p2);
     var arrow = [];
-    var res = $this.fineArrow(
+    var res = self.fineArrow(
       [firstPoint[0], firstPoint[1]],
       [endPoints[0], endPoints[1]]
     );
     for (var i = 0; i < res.length; i++) {
-      var cart3 = new $this.Cesium.Cartesian3(res[i].x, res[i].y, res[i].z);
+      var cart3 = new self.Cesium.Cartesian3(res[i].x, res[i].y, res[i].z);
       arrow.push(cart3);
     }
-    var arrowEntity = $this.viewer.entities.add({
+    var arrowEntity = self.viewer.entities.add({
       polygon: {
-        hierarchy: new $this.Cesium.PolygonHierarchy(arrow),
+        hierarchy: new self.Cesium.PolygonHierarchy(arrow),
         show: true,
         fill: true,
         clampToGround: true,
-        material: $this.Cesium.Color.AQUA.withAlpha(0.5),
+        material: self.Cesium.Color.AQUA.withAlpha(0.5),
       },
     });
     return arrowEntity;
@@ -59,102 +60,104 @@ class DrawstraightArrow {
 
   //开始创建
   startCreate() {
-    var $this = this;
+    var self = this;
     this.handler = new this.Cesium.ScreenSpaceEventHandler(
       this.viewer.scene.canvas
     );
     this.handler.setInputAction(function (evt) {
       //单机开始绘制
       //屏幕坐标转地形上坐标
-      var cartesian = $this.getCatesian3FromPX(evt.position);
-      if ($this._positions.length == 0) {
-        $this._positions.push(cartesian.clone());
-        $this.floatingPoint = $this.createPoint(cartesian);
+      var cartesian = self.getCatesian3FromPX(evt.position);
+      if (self._positions.length == 0) {
+        self._positions.push(cartesian.clone());
+        self.floatingPoint = self.createPoint(cartesian);
       }
-      if (!$this._straightArrow) {
-        $this.createPoint(cartesian); // 绘制点
+      if (!self._straightArrow) {
+        self.createPoint(cartesian); // 绘制点
       }
-      $this._positions.push(cartesian);
-    }, $this.Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      self._positions.push(cartesian);
+    }, self.Cesium.ScreenSpaceEventType.LEFT_CLICK);
     this.handler.setInputAction(function (evt) {
       //移动时绘制面
-      if ($this._positions.length < 2) return;
-      var cartesian = $this.getCatesian3FromPX(evt.endPosition);
-      if (!$this.Cesium.defined($this._straightArrow)) {
-        $this._straightArrow = $this.createStraightArrow();
+      if (self._positions.length < 2) return;
+      var cartesian = self.getCatesian3FromPX(evt.endPosition);
+      if (!self.Cesium.defined(self._straightArrow)) {
+        self._straightArrow = self.createStraightArrow();
       }
-      $this.floatingPoint.position.setValue(cartesian);
-      if ($this._straightArrow) {
-        $this._positions.pop();
-        $this._positions.push(cartesian);
+      self.floatingPoint.position.setValue(cartesian);
+      if (self._straightArrow) {
+        self._positions.pop();
+        self._positions.push(cartesian);
       }
-    }, $this.Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    }, self.Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
     this.handler.setInputAction(function (evt) {
-      if (!$this._straightArrow) return;
-      var cartesian = $this.getCatesian3FromPX(evt.position);
-      $this._positions.pop();
-      $this._positions.push(cartesian);
-      $this._straightArrowData = $this._positions.concat();
-      $this.viewer.entities.remove($this._straightArrow); //移除
-      $this._straightArrow = null;
-      $this._positions = [];
-      $this.floatingPoint.position.setValue(cartesian);
-      var straightArrow = $this.loadStraightArrow($this._straightArrowData); //加载
-      $this._entities_straightArrow.push(straightArrow);
-      $this._straightArrowLast = straightArrow;
-      $this.clearPoint();
-    }, $this.Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+      if (!self._straightArrow) return;
+      var cartesian = self.getCatesian3FromPX(evt.position);
+      self._positions.pop();
+      self._positions.push(cartesian);
+      self._straightArrowData = self._positions.concat();
+      self.viewer.entities.remove(self._straightArrow); //移除
+      self._straightArrow = null;
+      self._positions = [];
+      self.floatingPoint.position.setValue(cartesian);
+      var straightArrow = self.loadStraightArrow(self._straightArrowData); //加载
+      self._entities_straightArrow.push(straightArrow);
+      self._straightArrowLast = straightArrow;
+      self.clearPoint();
+      self.callback();
+      self.destroy();
+    }, self.Cesium.ScreenSpaceEventType.RIGHT_CLICK);
   }
 
   //创建直线箭头
   createStraightArrow() {
-    var $this = this;
-    var arrowEntity = $this.viewer.entities.add({
+    var self = this;
+    var arrowEntity = self.viewer.entities.add({
       polygon: {
-        hierarchy: new $this.Cesium.CallbackProperty(function () {
-          // return new $this.Cesium.PolygonHierarchy($this._positions);
-          var length = $this._positions.length;
-          var p1 = $this._positions[0];
-          var p2 = $this._positions[length - 1];
-          var firstPoint = $this.cartesianToLatlng(p1);
-          var endPoints = $this.cartesianToLatlng(p2);
+        hierarchy: new self.Cesium.CallbackProperty(function () {
+          // return new self.Cesium.PolygonHierarchy(self._positions);
+          var length = self._positions.length;
+          var p1 = self._positions[0];
+          var p2 = self._positions[length - 1];
+          var firstPoint = self.cartesianToLatlng(p1);
+          var endPoints = self.cartesianToLatlng(p2);
           var arrow = [];
-          var res = $this.fineArrow(
+          var res = self.fineArrow(
             [firstPoint[0], firstPoint[1]],
             [endPoints[0], endPoints[1]]
           );
           for (var i = 0; i < res.length; i++) {
-            var cart3 = new $this.Cesium.Cartesian3(
+            var cart3 = new self.Cesium.Cartesian3(
               res[i].x,
               res[i].y,
               res[i].z
             );
             arrow.push(cart3);
           }
-          return new $this.Cesium.PolygonHierarchy(arrow);
+          return new self.Cesium.PolygonHierarchy(arrow);
         }, false),
         show: true,
         fill: true,
         clampToGround: true,
-        material: $this.Cesium.Color.AQUA.withAlpha(0.5),
+        material: self.Cesium.Color.AQUA.withAlpha(0.5),
       },
     });
-    $this._entities_straightArrow.push(arrowEntity);
+    self._entities_straightArrow.push(arrowEntity);
     return arrowEntity;
   }
 
   //创建点
   createPoint(cartesian) {
-    var $this = this;
+    var self = this;
     var point = this.viewer.entities.add({
       position: cartesian,
       point: {
         pixelSize: 10,
-        color: $this.Cesium.Color.YELLOW,
+        color: self.Cesium.Color.YELLOW,
       },
     });
-    $this._entities_point.push(point);
+    self._entities_point.push(point);
     return point;
   }
 
@@ -220,32 +223,32 @@ class DrawstraightArrow {
   }
 
   fineArrow(tailPoint, headerPoint) {
-    var $this = this;
+    var self = this;
     if (tailPoint.length < 2 || headerPoint.length < 2) return;
     //画箭头的函数
-    let tailWidthFactor = $this.fineArrowDefualParam().tailWidthFactor;
-    let neckWidthFactor = $this.fineArrowDefualParam().neckWidthFactor;
-    let headWidthFactor = $this.fineArrowDefualParam().headWidthFactor;
-    let headAngle = $this.fineArrowDefualParam().headAngle;
-    let neckAngle = $this.fineArrowDefualParam().neckAngle;
+    let tailWidthFactor = self.fineArrowDefualParam().tailWidthFactor;
+    let neckWidthFactor = self.fineArrowDefualParam().neckWidthFactor;
+    let headWidthFactor = self.fineArrowDefualParam().headWidthFactor;
+    let headAngle = self.fineArrowDefualParam().headAngle;
+    let neckAngle = self.fineArrowDefualParam().neckAngle;
     var o = [];
     o[0] = tailPoint;
     o[1] = headerPoint;
     var e = o[0],
       r = o[1],
-      n = $this.getBaseLength(o),
+      n = self.getBaseLength(o),
       g = n * tailWidthFactor,
       //尾部宽度因子
       i = n * neckWidthFactor,
       //脖子宽度银子
       s = n * headWidthFactor,
       //头部宽度因子
-      a = $this.getThirdPoint(r, e, Math.PI / 2, g, !0),
-      l = $this.getThirdPoint(r, e, Math.PI / 2, g, !1),
-      u = $this.getThirdPoint(e, r, headAngle, s, !1),
-      c = $this.getThirdPoint(e, r, headAngle, s, !0),
-      p = $this.getThirdPoint(e, r, neckAngle, i, !1),
-      h = $this.getThirdPoint(e, r, neckAngle, i, !0),
+      a = self.getThirdPoint(r, e, Math.PI / 2, g, !0),
+      l = self.getThirdPoint(r, e, Math.PI / 2, g, !1),
+      u = self.getThirdPoint(e, r, headAngle, s, !1),
+      c = self.getThirdPoint(e, r, headAngle, s, !0),
+      p = self.getThirdPoint(e, r, neckAngle, i, !1),
+      h = self.getThirdPoint(e, r, neckAngle, i, !0),
       d = [];
     d.push(
       a[0],
@@ -265,7 +268,7 @@ class DrawstraightArrow {
       e[0],
       e[1]
     );
-    return $this.Cesium.Cartesian3.fromDegreesArray(d);
+    return self.Cesium.Cartesian3.fromDegreesArray(d);
   }
 
   getBaseLength(t) {

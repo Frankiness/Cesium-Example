@@ -38,9 +38,9 @@ class DrawPoint {
       self._pointData = cartesian;
       self._point = point;
       if (typeof self.callback == "function") {
-        // self.callback(point);
         self.callback();
       }
+      self.destroy();
     }, self.Cesium.ScreenSpaceEventType.LEFT_CLICK);
   }
 

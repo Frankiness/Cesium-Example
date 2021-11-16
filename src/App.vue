@@ -1,10 +1,9 @@
 <template>
-  <Navigation />
-  <router-view></router-view>
+  <Index />
 </template>
 
 <script setup>
-import Navigation from "./components/Navigation.vue";
+import Index from "./views/index.vue";
 </script>
 
 <style></style>

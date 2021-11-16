@@ -6,6 +6,7 @@ class DrawCurve {
   constructor(arg) {
     this.viewer = arg.viewer;
     this.Cesium = arg.Cesium;
+    this.callback = arg.callback;
     this.floatingPoint = null; //标识点
     this._curveline = null; //活动曲线
     this._curvelineLast = null; //最后一条曲线
@@ -27,13 +28,13 @@ class DrawCurve {
 
   //加载曲线
   loadCurveline(data) {
-    var $this = this;
-    var points = $this.fineBezier(data);
+    var self = this;
+    var points = self.fineBezier(data);
     var polyline = this.viewer.entities.add({
       polyline: {
         positions: points,
         show: true,
-        material: $this.Cesium.Color.RED,
+        material: self.Cesium.Color.RED,
         width: 3,
         clampToGround: true,
       },
@@ -43,81 +44,85 @@ class DrawCurve {
 
   //开始创建
   startCreate() {
-    var $this = this;
+    var self = this;
     this.handler = new this.Cesium.ScreenSpaceEventHandler(
       this.viewer.scene.canvas
     );
     this.handler.setInputAction(function (evt) {
       //单机开始绘制
       //屏幕坐标转地形上坐标
-      var cartesian = $this.getCatesian3FromPX(evt.position);
-      if ($this._positions.length == 0) {
-        $this._positions.push(cartesian.clone());
-        $this.floatingPoint = $this.createPoint(cartesian);
-        $this.createPoint(cartesian); // 绘制点
+      var cartesian = self.getCatesian3FromPX(evt.position);
+      if (self._positions.length == 0) {
+        self._positions.push(cartesian.clone());
+        self.floatingPoint = self.createPoint(cartesian);
+        self.createPoint(cartesian); // 绘制点
       }
-      $this._positions.push(cartesian);
-    }, $this.Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      self._positions.push(cartesian);
+    }, self.Cesium.ScreenSpaceEventType.LEFT_CLICK);
     this.handler.setInputAction(function (evt) {
       //移动时绘制线
-      if ($this._positions.length < 4) return;
-      var cartesian = $this.getCatesian3FromPX(evt.endPosition);
-      if (!$this.Cesium.defined($this._curveline)) {
-        $this._curveline = $this.createCurveline();
+      if (self._positions.length < 4) return;
+      var cartesian = self.getCatesian3FromPX(evt.endPosition);
+      if (!self.Cesium.defined(self._curveline)) {
+        self._curveline = self.createCurveline();
       }
-      $this.floatingPoint.position.setValue(cartesian);
-      if ($this._curveline) {
-        $this._positions.pop();
-        $this._positions.push(cartesian);
+      self.floatingPoint.position.setValue(cartesian);
+      if (self._curveline) {
+        self._positions.pop();
+        self._positions.push(cartesian);
       }
-    }, $this.Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    }, self.Cesium.ScreenSpaceEventType.MOUSE_MOVE);
     this.handler.setInputAction(function (evt) {
-      if (!$this._curveline) return;
-      var cartesian = $this.getCatesian3FromPX(evt.position);
-      $this._positions.pop();
-      $this._positions.push(cartesian);
-      $this.createPoint(cartesian); // 绘制点
-      $this._curvelineData = $this._positions.concat();
-      $this.viewer.entities.remove($this._curveline); //移除
-      $this._curveline = null;
-      $this._positions = [];
-      $this.floatingPoint.position.setValue(cartesian);
-      var line = $this.loadCurveline($this._curvelineData); //加载曲线
-      $this._entities_line.push(line);
-      $this._curvelineLast = line;
-    }, $this.Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+      if (!self._curveline) return;
+      var cartesian = self.getCatesian3FromPX(evt.position);
+      self._positions.pop();
+      self._positions.push(cartesian);
+      self.createPoint(cartesian); // 绘制点
+      self._curvelineData = self._positions.concat();
+      self.viewer.entities.remove(self._curveline); //移除
+      self._curveline = null;
+      self._positions = [];
+      self.floatingPoint.position.setValue(cartesian);
+      var line = self.loadCurveline(self._curvelineData); //加载曲线
+      self._entities_line.push(line);
+      self._curvelineLast = line;
+      if (typeof self.callback == "function") {
+        self.callback();
+      }
+      self.destroy();
+    }, self.Cesium.ScreenSpaceEventType.RIGHT_CLICK);
   }
 
   //创建点
   createPoint(cartesian) {
-    var $this = this;
+    var self = this;
     var point = this.viewer.entities.add({
       position: cartesian,
       point: {
         pixelSize: 10,
-        color: $this.Cesium.Color.YELLOW,
+        color: self.Cesium.Color.YELLOW,
       },
     });
-    $this._entities_point.push(point);
+    self._entities_point.push(point);
     return point;
   }
 
   //创建曲线
   createCurveline() {
-    var $this = this;
+    var self = this;
     var polyline = this.viewer.entities.add({
       polyline: {
         //使用cesium的peoperty
-        positions: new $this.Cesium.CallbackProperty(function () {
-          return $this.fineBezier($this._positions);
+        positions: new self.Cesium.CallbackProperty(function () {
+          return self.fineBezier(self._positions);
         }, false),
         show: true,
-        material: $this.Cesium.Color.RED,
+        material: self.Cesium.Color.RED,
         width: 3,
         clampToGround: true,
       },
     });
-    $this._entities_line.push(polyline);
+    self._entities_line.push(polyline);
     return polyline;
   }
 
@@ -165,23 +170,23 @@ class DrawCurve {
   //贝塞尔曲线实现
 
   fineBezier(points) {
-    var $this = this;
+    var self = this;
     var pointNUM = 40; //个点
     var poins2D = [];
     var d = [];
     for (var i = 0; i < points.length; i++) {
-      var res = $this.cartesianToLatlng(points[i]);
+      var res = self.cartesianToLatlng(points[i]);
       var point = new Object();
       point.x = res[0];
       point.y = res[1];
       poins2D.push(point);
     }
-    var cbs = $this.ComputeBezier(poins2D, pointNUM);
+    var cbs = self.ComputeBezier(poins2D, pointNUM);
     for (var j = 0; j < cbs.length; j++) {
       d.push(cbs[j].x);
       d.push(cbs[j].y);
     }
-    return $this.Cesium.Cartesian3.fromDegreesArray(d);
+    return self.Cesium.Cartesian3.fromDegreesArray(d);
   }
 
   /*
@@ -219,13 +224,13 @@ class DrawCurve {
  呼叫者必須分配足夠的記憶體以供輸出結果，其為<sizeof(Point2D) numberOfPoints>
 */
   ComputeBezier(cp, numberOfPoints) {
-    var $this = this;
+    var self = this;
     var dt;
     var i;
     var curve = [];
     dt = 1.0 / (numberOfPoints - 1);
     for (i = 0; i < numberOfPoints; i++) {
-      curve[i] = $this.PointOnCubicBezier(cp, i * dt);
+      curve[i] = self.PointOnCubicBezier(cp, i * dt);
     }
     return curve;
   }

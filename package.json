@@ -9,6 +9,8 @@
   "dependencies": {
     "ant-design-vue": "^2.2.8",
     "cesium": "^1.85.0",
+    "less": "^4.1.2",
+    "less-loader": "^10.2.0",
     "vue": "^3.2.6",
     "vue-router": "^4.0.12"
   },

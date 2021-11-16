@@ -3,7 +3,12 @@ const routes = [
   {
     path: "/",
     name: "home",
-    component: () => import("../views/index.vue"),
+    component: () => import("../components/Cesium.vue"),
+  },
+  {
+    path: "/page1",
+    name: "cesium",
+    component: () => import("../components/Cesium.vue"),
   },
 ];
 const router = createRouter({
