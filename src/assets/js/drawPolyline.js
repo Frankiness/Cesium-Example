@@ -60,8 +60,9 @@ class DrawPolyline {
       self.createPoint(cartesian); // 绘制点
 
       self.pointArray.push(cartesian);
-      if (self.pointArray.length > 2) {
+      if (self.pointArray.length >= 2) {
         self.getSpaceDistance(self.pointArray);
+        console.log(self.Cesium);
       }
       //在三维场景中添加Label
       let textDisance = self.distance + "米";
@@ -188,6 +189,7 @@ class DrawPolyline {
   }
   //空间两点距离计算函数
   getSpaceDistance(positions) {
+    let self = this;
     let distance = 0; //总距离
     // 与后一个点之间计算距离然后叠加
     for (let i = 0; i < positions.length - 1; i++) {
