@@ -1,9 +1,9 @@
 <template>
-  <HelloWorld msg="Hello Vue 3 + Vite + cesium" />
+  <Index />
 </template>
 
 <script setup>
-import HelloWorld from "./components/HelloWorld.vue";
+import Index from "./views/index.vue";
 </script>
 
 <style></style>
