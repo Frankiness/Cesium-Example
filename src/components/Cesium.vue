@@ -2,11 +2,13 @@
   <div id="cesium-container" :style="{ cursor: cursorStyle }"></div>
   <div id="list">
     <div id="point" class="icon" title="点" @click="drawPoint"></div>
-    <div id="line" class="icon" title="线" @click="drawLine"></div>
     <div id="curve" class="icon" title="曲线" @click="drawCurve"></div>
     <div id="polyline" class="icon" title="折线" @click="drawPolyline"></div>
     <div id="arrow" class="icon" title="箭头" @click="drawArrow"></div>
-    <div id="clear" class="icon" title="清除全部"></div>
+    <div id="rectangle" class="icon" title="矩形" @click="drawRectangle"></div>
+    <div id="polygon" class="icon" title="多边形" @click="drawPolygon"></div>
+
+    <div id="clear" class="icon" title="清除全部" @click="clearAll"></div>
   </div>
 </template>
 
@@ -14,12 +16,13 @@
 import { ref, onMounted } from "vue";
 import * as Cesium from "cesium";
 import DrawPoint from "../assets/js/drawPoint";
-import DrawLine from "../assets/js/drawLine";
 import DrawCurve from "../assets/js/drawCurve";
 import DrawArrow from "../assets/js/drawArrow";
 import DrawPolyline from "../assets/js/drawPolyline";
+import DrawRectangle from "../assets/js/drawRectangle";
+import measureArea from "../assets/js/measureArea";
 
-let cursorStyle = ref("default");
+let cursorStyle = ref("default"); //鼠标样式
 const initEarth = () => {
   window.viewer = new Cesium.Viewer("cesium-container", {
     animation: false, //是否创建动画小器件，左下角仪表
@@ -37,7 +40,7 @@ const initEarth = () => {
     navigationInstructionsInitiallyVisible: false,
     showRenderLoopErrors: false, //是否显示渲染错误
     orderIndependentTranslucency: false,
-    terrainProvider: Cesium.createWorldTerrain(), //地形
+    // terrainProvider: Cesium.createWorldTerrain(), //地形
     contextOptions: {
       webgl: {
         alpha: true,
@@ -48,58 +51,57 @@ const initEarth = () => {
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(117.16, 32.71, 5000000.0),
   });
-  // let point = new DrawArrow({
-  //   viewer,
-  //   Cesium,
-  //   callback: cb,
-  // });
-  // point.startCreate();
 };
 let cb = () => {
   cursorStyle.value = "default";
-  console.log("绘制完成");
 };
 // draw point
 const drawPoint = () => {
   cursorStyle.value = "crosshair";
-  let point = new DrawPoint({ viewer, Cesium, callback: cb });
-  point.startCreate();
-};
-// draw line
-const drawLine = () => {
-  cursorStyle.value = "crosshair";
-  let line = new DrawLine({
-    viewer,
-    Cesium,
-    callback: cb,
-  });
-  line.startCreate();
+  window.pointObj = new DrawPoint({ viewer, Cesium, callback: cb });
+  pointObj.startCreate();
 };
 // draw curve
 const drawCurve = () => {
   cursorStyle.value = "crosshair";
-  let curve = new DrawCurve({
+  window.curveObj = new DrawCurve({
     viewer,
     Cesium,
     callback: cb,
   });
-  curve.startCreate();
+  curveObj.startCreate();
 };
 // draw arrow
 const drawArrow = () => {
   cursorStyle.value = "crosshair";
-  let arrow = new DrawArrow({
+  window.arrowObj = new DrawArrow({
     viewer,
     Cesium,
     callback: cb,
   });
-  arrow.startCreate();
+  arrowObj.startCreate();
 };
 // draw polyline
 const drawPolyline = () => {
   cursorStyle.value = "crosshair";
-  let polyline = new DrawPolyline({ viewer, Cesium, callback: cb });
-  polyline.startCreate();
+  window.polylineObj = new DrawPolyline({ viewer, Cesium, callback: cb });
+  polylineObj.startCreate();
+};
+const clearAll = () => {
+  window.pointObj && pointObj.clear();
+  window.curveObj && curveObj.clear();
+  window.arrowObj && arrowObj.clear();
+  window.polylineObj && polylineObj.clear();
+};
+const drawRectangle = () => {
+  cursorStyle.value = "crosshair";
+  window.rectangleObj = new DrawRectangle({ viewer, Cesium, callback: cb });
+  rectangleObj.startCreate();
+};
+const drawPolygon = () => {
+  cursorStyle.value = "crosshair";
+  window.polygonAreaObj = new measureArea({ viewer, Cesium, callback: cb });
+  polygonAreaObj.startCreate();
 };
 onMounted(() => {
   initEarth();
@@ -136,6 +138,12 @@ onMounted(() => {
   }
   #clear {
     .icon(url(../assets/images/清除.png));
+  }
+  #rectangle {
+    .icon(url(../assets/images/面.png));
+  }
+  #polygon {
+    .icon(url(../assets/images/polygon.png));
   }
 }
 </style>

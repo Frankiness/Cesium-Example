@@ -15,6 +15,7 @@ class DrawPolyline {
     this._positions = []; //活动点
     this._entities_point = []; //脏数据
     this._entities_line = []; //脏数据
+    this._entities_line = [];
     this._polylineData = null; //用于构造线数据
   }
 
@@ -61,30 +62,10 @@ class DrawPolyline {
 
       self.pointArray.push(cartesian);
       if (self.pointArray.length >= 2) {
-        self.getSpaceDistance(self.pointArray);
-        console.log(self.Cesium);
+        self.distance = self.getSpaceDistance(self.pointArray);
       }
-      //在三维场景中添加Label
-      let textDisance = self.distance + "米";
-      let floatingPoint = self.viewer.entities.add({
-        name: "空间直线距离",
-        position: self._positions[self._positions.length - 1],
-        point: {
-          pixelSize: 5,
-          color: self.Cesium.Color.RED,
-          outlineColor: self.Cesium.Color.WHITE,
-          outlineWidth: 2,
-        },
-        label: {
-          text: textDisance,
-          font: "18px sans-serif",
-          fillColor: self.Cesium.Color.GOLD,
-          style: self.Cesium.LabelStyle.FILL_AND_OUTLINE,
-          outlineWidth: 2,
-          verticalOrigin: self.Cesium.VerticalOrigin.BOTTOM,
-          pixelOffset: new self.Cesium.Cartesian2(20, -20),
-        },
-      });
+      // 绘制标签
+      self.createLabel(self._positions);
     }, self.Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
     this.handler.setInputAction(function (evt) {
@@ -106,6 +87,14 @@ class DrawPolyline {
       self._positions.pop();
       self._positions.push(cartesian);
       self.createPoint(cartesian); // 绘制点
+
+      self.pointArray.push(cartesian);
+      if (self.pointArray.length >= 2) {
+        self.distance = self.getSpaceDistance(self.pointArray);
+      }
+      // 绘制标签
+      self.createLabel(self._positions);
+
       self._polylineData = self._positions.concat();
       self.viewer.entities.remove(self._polyline); //移除
       self._polyline = null;
@@ -113,16 +102,39 @@ class DrawPolyline {
       var line = self.loadPolyline(self._polylineData); //加载线
       self._entities_line.push(line);
       self._polylineLast = line;
+
       if (typeof self.callback == "function") {
         self.callback();
-        console.log(self.distance);
       }
       self.destroy();
     }, self.Cesium.ScreenSpaceEventType.RIGHT_CLICK);
   }
 
   // 添加标签
-
+  createLabel(positions) {
+    let self = this;
+    //在三维场景中添加Label
+    let textDisance = self.distance + "米";
+    let label = self.viewer.entities.add({
+      name: "空间直线距离",
+      position: positions[positions.length - 1],
+      point: {
+        pixelSize: 5,
+        color: self.Cesium.Color.RED,
+        outlineColor: self.Cesium.Color.WHITE,
+        outlineWidth: 2,
+      },
+      label: {
+        text: textDisance,
+        font: "18px sans-serif",
+        fillColor: self.Cesium.Color.GOLD,
+        style: self.Cesium.LabelStyle.FILL_AND_OUTLINE,
+        outlineWidth: 2,
+        verticalOrigin: self.Cesium.VerticalOrigin.BOTTOM,
+        pixelOffset: new self.Cesium.Cartesian2(20, -20),
+      },
+    });
+  }
   //创建点
   createPoint(cartesian) {
     var self = this;
@@ -166,10 +178,11 @@ class DrawPolyline {
 
   //清空实体对象
   clear() {
-    for (var i = 0; i < this._entities_point.length; i++) {
+    for (let i = 0; i < this._entities_point.length; i++) {
+      console.log(this._entities_point[i]);
       this.viewer.entities.remove(this._entities_point[i]);
     }
-    for (var i = 0; i < this._entities_line.length; i++) {
+    for (let i = 0; i < this._entities_line.length; i++) {
       this.viewer.entities.remove(this._entities_line[i]);
     }
     this._polyline = null;

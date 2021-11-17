@@ -3,6 +3,8 @@ class DrawPolyline {
     this.viewer = arg.viewer;
     this.Cesium = arg.Cesium;
     this.callback = arg.callback;
+    this.distance = 0; //距离
+    this.pointArray = []; //点位数组
     this._polyline = null; //活动线
     this._polylineLast = null; //最后一条线
     this._positions = []; //存储需要绘制的点
@@ -152,6 +154,32 @@ class DrawPolyline {
     if (!ray) return null;
     cartesian = this.viewer.scene.globe.pick(ray, this.viewer.scene);
     return cartesian;
+  }
+
+  //空间两点距离计算函数
+  getSpaceDistance(positions) {
+    let self = this;
+    let distance = 0; //总距离
+    // 与后一个点之间计算距离然后叠加
+    for (let i = 0; i < positions.length - 1; i++) {
+      let point1cartographic = self.Cesium.Cartographic.fromCartesian(
+        positions[i]
+      ); //笛卡尔坐标转经纬度
+      let point2cartographic = self.Cesium.Cartographic.fromCartesian(
+        positions[i + 1]
+      );
+      /**根据经纬度计算出球面距离**/
+      let geodesic = new self.Cesium.EllipsoidGeodesic();
+      geodesic.setEndPoints(point1cartographic, point2cartographic);
+      let s = geodesic.surfaceDistance;
+      //返回两点之间的距离
+      s = Math.sqrt(
+        Math.pow(s, 2) +
+          Math.pow(point2cartographic.height - point1cartographic.height, 2)
+      );
+      distance = distance + s;
+    }
+    return distance.toFixed(2);
   }
 }
 
