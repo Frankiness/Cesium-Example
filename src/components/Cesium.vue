@@ -1,19 +1,37 @@
 <template>
+  <div class="slider">
+    <p style="color: white">旋转X轴：</p>
+    <a-col :span="50">
+      <a-slider v-model:value="rotateX_Value" :min="1" :max="360" />
+    </a-col>
+    <p style="color: white">旋转Y轴：</p>
+    <a-col :span="50">
+      <a-slider v-model:value="rotateY_Value" :min="1" :max="360" />
+    </a-col>
+    <p style="color: white">旋转Z轴：</p>
+    <a-col :span="50">
+      <a-slider v-model:value="rotateZ_Value" :min="1" :max="360" />
+    </a-col>
+    <p style="color: white">缩放：</p>
+    <a-col :span="50">
+      <a-slider v-model:value="scaleVal" :min="1" :max="360" />
+    </a-col>
+  </div>
   <div id="cesium-container" :style="{ cursor: cursorStyle }"></div>
-  <div id="list">
+  <!-- <div id="list">
     <div id="point" class="icon" title="点" @click="drawPoint"></div>
     <div id="curve" class="icon" title="曲线" @click="drawCurve"></div>
     <div id="polyline" class="icon" title="折线" @click="drawPolyline"></div>
     <div id="arrow" class="icon" title="箭头" @click="drawArrow"></div>
     <div id="rectangle" class="icon" title="矩形" @click="drawRectangle"></div>
     <div id="polygon" class="icon" title="多边形" @click="drawPolygon"></div>
-
     <div id="clear" class="icon" title="清除全部" @click="clearAll"></div>
-  </div>
+  </div> -->
+  <Test></Test>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import * as Cesium from "cesium";
 import DrawPoint from "../assets/js/drawPoint";
 import DrawCurve from "../assets/js/drawCurve";
@@ -21,9 +39,93 @@ import DrawArrow from "../assets/js/drawArrow";
 import DrawPolyline from "../assets/js/drawPolyline";
 import DrawRectangle from "../assets/js/drawRectangle";
 import measureArea from "../assets/js/measureArea";
+import Test from "../components/test.vue";
 
+let rotateX_Value = ref(1);
+let rotateY_Value = ref(1);
+let rotateZ_Value = ref(1);
+let scaleVal = ref(1);
+watch(rotateX_Value, (newV) => {
+  rotatex(newV);
+});
+watch(scaleVal, (val) => {
+  scale(val);
+});
+watch(rotateY_Value, (val) => {
+  rotatey(val);
+});
+watch(rotateZ_Value, (val) => {
+  rotatez(val);
+});
+
+//放大缩小
+let scale = (value) => {
+  let m1 = Cesium.Matrix3.fromScale(new Cesium.Cartesian3(value, value, value));
+  trasnlate(m1);
+};
+//旋转
+let rotatex = (anglex) => {
+  // 把旋转的度数转换为弧度制，并建立一个围绕X轴的旋转矩阵
+  let m1 = Cesium.Matrix3.fromRotationX(Cesium.Math.toRadians(anglex));
+  trasnlate(m1);
+};
+
+let rotatey = (angley) => {
+  let m1 = Cesium.Matrix3.fromRotationY(Cesium.Math.toRadians(angley));
+  trasnlate(m1);
+};
+
+let rotatez = (anglez) => {
+  let m1 = Cesium.Matrix3.fromRotationZ(Cesium.Math.toRadians(anglez));
+  trasnlate(m1);
+};
+let trasnlate = (transformin) => {
+  let transformMat = m; //原矩阵
+  // 因为是齐次变换矩阵，所以只需要用到三维矩阵
+  let matRotation = Cesium.Matrix4.getMatrix3(transformMat, new Cesium.Matrix3());
+  let inverseMatRotation = Cesium.Matrix3.inverse(matRotation, new Cesium.Matrix3()); //旋转矩阵的逆
+  // 获得平移部分的坐标值
+  let matTranslation = Cesium.Matrix4.getTranslation(
+    transformMat,
+    new Cesium.Cartesian3()
+  );
+
+  let transformation = Cesium.Transforms.eastNorthUpToFixedFrame(boxCenter); //以包围盒的中间建立一个矩阵
+  let transformRotation = Cesium.Matrix4.getMatrix3(transformation, new Cesium.Matrix3());
+  let transformTranslation = Cesium.Matrix4.getTranslation(
+    transformation,
+    new Cesium.Cartesian3()
+  );
+  // 平移的差值
+  let matToTranslation = Cesium.Cartesian3.subtract(
+    matTranslation,
+    transformTranslation,
+    new Cesium.Cartesian3()
+  );
+  matToTranslation = Cesium.Matrix4.fromTranslation(
+    matToTranslation,
+    new Cesium.Matrix4()
+  );
+
+  let matToTransformation = Cesium.Matrix3.multiply(
+    inverseMatRotation,
+    transformRotation,
+    new Cesium.Matrix3()
+  );
+  matToTransformation = Cesium.Matrix3.inverse(matToTransformation, new Cesium.Matrix3());
+  matToTransformation = Cesium.Matrix4.fromRotationTranslation(matToTransformation);
+
+  let rotationTranslation = Cesium.Matrix4.fromRotationTranslation(transformin);
+
+  Cesium.Matrix4.multiply(transformation, rotationTranslation, transformation);
+  Cesium.Matrix4.multiply(transformation, matToTransformation, transformation);
+  Cesium.Matrix4.multiply(transformation, matToTranslation, transformation);
+  tileset.modelMatrix = transformation;
+};
 let cursorStyle = ref("default"); //鼠标样式
-const initEarth = () => {
+let boxCenter;
+let m, tileset;
+const initEarth = async () => {
   window.viewer = new Cesium.Viewer("cesium-container", {
     animation: false, //是否创建动画小器件，左下角仪表
     baseLayerPicker: false, //是否显示图层选择器
@@ -40,17 +142,35 @@ const initEarth = () => {
     navigationInstructionsInitiallyVisible: false,
     showRenderLoopErrors: false, //是否显示渲染错误
     orderIndependentTranslucency: false,
-    // terrainProvider: Cesium.createWorldTerrain(), //地形
+    // terrainProvider: new Cesium.CesiumTerrainProvider({
+    //   url: "http://124.71.153.0:31080/tif",
+    // }), //地形
     contextOptions: {
       webgl: {
         alpha: true,
       },
     },
   });
+  // viewer.camera.flyTo({
+  //   //定位过去
+  //   destination: Cesium.Cartesian3.fromDegrees(105.931115, 27.961774, 1000),
+  // });
   viewer._cesiumWidget._creditContainer.style.display = "none";
-  viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(117.16, 32.71, 5000000.0),
+
+  tileset = new Cesium.Cesium3DTileset({
+    url: "http://124.71.153.0:31080/mmodel/model/Scene/3d.json", //此处填写tileset url地址
   });
+  viewer.scene.primitives.add(tileset);
+  viewer.zoomTo(tileset);
+  tileset.readyPromise.then(function (tileset) {
+    boxCenter = Cesium.Cartesian3.clone(tileset.boundingSphere.center); //获取包围盒中心
+  });
+
+  m = Cesium.Matrix4.clone(tileset.modelMatrix);
+
+  // viewer.camera.flyTo({
+  //   destination: Cesium.Cartesian3.fromDegrees(117.16, 32.71, 5000000.0),
+  // });
 };
 let cb = () => {
   cursorStyle.value = "default";
@@ -145,5 +265,16 @@ onMounted(() => {
   #polygon {
     .icon(url(../assets/images/polygon.png));
   }
+}
+
+.slider {
+  width: 200px;
+  position: absolute;
+  margin-left: 220px;
+  margin-top: 50px;
+  z-index: 10;
+}
+.code-box-demo .ant-slider {
+  margin-bottom: 16px;
 }
 </style>
