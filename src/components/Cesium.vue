@@ -2,19 +2,19 @@
   <div class="slider">
     <p style="color: white">旋转X轴：</p>
     <a-col :span="50">
-      <a-slider v-model:value="rotateX_Value" :min="1" :max="360" />
+      <a-slider v-model:value="rotateX_Value" :min="1" :max="5" />
     </a-col>
     <p style="color: white">旋转Y轴：</p>
     <a-col :span="50">
-      <a-slider v-model:value="rotateY_Value" :min="1" :max="360" />
+      <a-slider v-model:value="rotateY_Value" :min="1" :max="5" />
     </a-col>
     <p style="color: white">旋转Z轴：</p>
     <a-col :span="50">
-      <a-slider v-model:value="rotateZ_Value" :min="1" :max="360" />
+      <a-slider v-model:value="rotateZ_Value" :min="1" :max="5" />
     </a-col>
     <p style="color: white">缩放：</p>
     <a-col :span="50">
-      <a-slider v-model:value="scaleVal" :min="1" :max="360" />
+      <a-slider v-model:value="scaleVal" :min="1" :max="5" />
     </a-col>
   </div>
   <div id="cesium-container" :style="{ cursor: cursorStyle }"></div>
@@ -44,18 +44,19 @@ import Test from "../components/test.vue";
 let rotateX_Value = ref(1);
 let rotateY_Value = ref(1);
 let rotateZ_Value = ref(1);
+let finalMatrix = null;
 let scaleVal = ref(1);
 watch(rotateX_Value, (newV) => {
-  rotatex(newV);
+  rotateX(newV);
 });
 watch(scaleVal, (val) => {
   scale(val);
 });
 watch(rotateY_Value, (val) => {
-  rotatey(val);
+  rotateY(val);
 });
 watch(rotateZ_Value, (val) => {
-  rotatez(val);
+  rotateZ(val);
 });
 
 //放大缩小
@@ -64,23 +65,38 @@ let scale = (value) => {
   trasnlate(m1);
 };
 //旋转
-let rotatex = (anglex) => {
+let rotateX = (anglex) => {
   // 把旋转的度数转换为弧度制，并建立一个围绕X轴的旋转矩阵
   let m1 = Cesium.Matrix3.fromRotationX(Cesium.Math.toRadians(anglex));
   trasnlate(m1);
 };
 
-let rotatey = (angley) => {
+let rotateY = (angley) => {
   let m1 = Cesium.Matrix3.fromRotationY(Cesium.Math.toRadians(angley));
+  // if (finalMatrix) {
+  //   let m2 = Cesium.Matrix4.multiply(m1, finalMatrix, new Cesium.Matrix3());
+  //   trasnlate(m2);
+  // }else{
   trasnlate(m1);
+  // }
 };
 
-let rotatez = (anglez) => {
+let rotateZ = (anglez) => {
   let m1 = Cesium.Matrix3.fromRotationZ(Cesium.Math.toRadians(anglez));
   trasnlate(m1);
 };
 let trasnlate = (transformin) => {
-  let transformMat = m; //原矩阵
+  console.log(transformin);
+  let x = Cesium.Matrix4.fromRotationTranslation(transformin);
+  console.log(x);
+  // let transformMat
+  // if(finalMatrix){
+  //   Cesium.Matrix4.multiply(x, finalMatrix, transformMat);
+  // }else{
+  //   transformMat = m; //原矩阵
+  // }
+  
+
   // 因为是齐次变换矩阵，所以只需要用到三维矩阵
   let matRotation = Cesium.Matrix4.getMatrix3(transformMat, new Cesium.Matrix3());
   let inverseMatRotation = Cesium.Matrix3.inverse(matRotation, new Cesium.Matrix3()); //旋转矩阵的逆
@@ -92,6 +108,7 @@ let trasnlate = (transformin) => {
 
   let transformation = Cesium.Transforms.eastNorthUpToFixedFrame(boxCenter); //以包围盒的中间建立一个矩阵
   let transformRotation = Cesium.Matrix4.getMatrix3(transformation, new Cesium.Matrix3());
+  // 获取齐次矩阵平移的值
   let transformTranslation = Cesium.Matrix4.getTranslation(
     transformation,
     new Cesium.Cartesian3()
@@ -121,6 +138,41 @@ let trasnlate = (transformin) => {
   Cesium.Matrix4.multiply(transformation, matToTransformation, transformation);
   Cesium.Matrix4.multiply(transformation, matToTranslation, transformation);
   tileset.modelMatrix = transformation;
+  finalMatrix = Cesium.Matrix4.clone(tileset.modelMatrix);
+};
+let update3dtilesMaxtrix = (tileset) => {
+  let params={
+    tx:117.16, ty:32.71, tz:500000.0,
+    rx:20,ry:40,rz:90,
+    scale:10
+  }
+  var modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(
+    Cesium.Cartesian3.fromDegrees(params.tx, params.ty, params.tz)
+  );
+
+  // 旋转
+  var rotationMatrix = Cesium.Matrix4.fromRotationTranslation(
+    Cesium.Matrix3.fromHeadingPitchRoll(
+      new Cesium.HeadingPitchRoll(
+        Cesium.Math.toRadians(params.rx),
+        Cesium.Math.toRadians(params.ry),
+        Cesium.Math.toRadians(params.rz)
+      )
+    )
+  );
+
+  var scale = params.scale || 0;
+  var scaleMatrix = new Cesium.Matrix4.fromScale(
+    new Cesium.Cartesian3(scale, scale, scale)
+  );
+
+  //旋转、平移矩阵相乘
+  Cesium.Matrix4.multiply(modelMatrix, rotationMatrix, modelMatrix);
+  Cesium.Matrix4.multiply(modelMatrix, scaleMatrix, modelMatrix);
+  //赋值给tileset
+  tileset.root.transform = modelMatrix;
+  //缩放
+  viewer.flyTo(tileset);
 };
 let cursorStyle = ref("default"); //鼠标样式
 let boxCenter;
@@ -158,16 +210,18 @@ const initEarth = async () => {
   viewer._cesiumWidget._creditContainer.style.display = "none";
 
   tileset = new Cesium.Cesium3DTileset({
-    url: "http://124.71.153.0:31080/mmodel/model/Scene/3d.json", //此处填写tileset url地址
+    url: "http://124.71.153.0:31080/mmodel/model/Scene/3DTiles.json", //此处填写tileset url地址
+    maximumScreenSpaceError: 1,
   });
   viewer.scene.primitives.add(tileset);
   viewer.zoomTo(tileset);
   tileset.readyPromise.then(function (tileset) {
+     update3dtilesMaxtrix(tileset)
     boxCenter = Cesium.Cartesian3.clone(tileset.boundingSphere.center); //获取包围盒中心
   });
 
   m = Cesium.Matrix4.clone(tileset.modelMatrix);
-
+ 
   // viewer.camera.flyTo({
   //   destination: Cesium.Cartesian3.fromDegrees(117.16, 32.71, 5000000.0),
   // });
