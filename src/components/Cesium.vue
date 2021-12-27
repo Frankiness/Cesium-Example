@@ -2,19 +2,19 @@
   <div class="slider">
     <p style="color: white">旋转X轴：</p>
     <a-col :span="50">
-      <a-slider v-model:value="rotateX_Value" :min="1" :max="5" />
+      <a-slider v-model:value="rotateX_Value" :min="1" :max="360" />
     </a-col>
     <p style="color: white">旋转Y轴：</p>
     <a-col :span="50">
-      <a-slider v-model:value="rotateY_Value" :min="1" :max="5" />
+      <a-slider v-model:value="rotateY_Value" :min="1" :max="360" />
     </a-col>
     <p style="color: white">旋转Z轴：</p>
     <a-col :span="50">
-      <a-slider v-model:value="rotateZ_Value" :min="1" :max="5" />
+      <a-slider v-model:value="rotateZ_Value" :min="1" :max="360" />
     </a-col>
     <p style="color: white">缩放：</p>
     <a-col :span="50">
-      <a-slider v-model:value="scaleVal" :min="1" :max="5" />
+      <a-slider v-model:value="scaleVal" :min="1" :max="360" />
     </a-col>
   </div>
   <div id="cesium-container" :style="{ cursor: cursorStyle }"></div>
@@ -66,24 +66,21 @@ let scale = (value) => {
 };
 //旋转
 let rotateX = (anglex) => {
+  params.rx = anglex;
+  update3dtilesMaxtrix();
   // 把旋转的度数转换为弧度制，并建立一个围绕X轴的旋转矩阵
-  let m1 = Cesium.Matrix3.fromRotationX(Cesium.Math.toRadians(anglex));
-  trasnlate(m1);
+  // let m1 = Cesium.Matrix3.fromRotationX(Cesium.Math.toRadians(anglex));
+  // trasnlate(m1);
 };
 
 let rotateY = (angley) => {
-  let m1 = Cesium.Matrix3.fromRotationY(Cesium.Math.toRadians(angley));
-  // if (finalMatrix) {
-  //   let m2 = Cesium.Matrix4.multiply(m1, finalMatrix, new Cesium.Matrix3());
-  //   trasnlate(m2);
-  // }else{
-  trasnlate(m1);
-  // }
+  params.ry = angley;
+  update3dtilesMaxtrix();
 };
 
 let rotateZ = (anglez) => {
-  let m1 = Cesium.Matrix3.fromRotationZ(Cesium.Math.toRadians(anglez));
-  trasnlate(m1);
+  params.rz = anglez;
+  update3dtilesMaxtrix();
 };
 let trasnlate = (transformin) => {
   console.log(transformin);
@@ -95,11 +92,16 @@ let trasnlate = (transformin) => {
   // }else{
   //   transformMat = m; //原矩阵
   // }
-  
 
   // 因为是齐次变换矩阵，所以只需要用到三维矩阵
-  let matRotation = Cesium.Matrix4.getMatrix3(transformMat, new Cesium.Matrix3());
-  let inverseMatRotation = Cesium.Matrix3.inverse(matRotation, new Cesium.Matrix3()); //旋转矩阵的逆
+  let matRotation = Cesium.Matrix4.getMatrix3(
+    transformMat,
+    new Cesium.Matrix3()
+  );
+  let inverseMatRotation = Cesium.Matrix3.inverse(
+    matRotation,
+    new Cesium.Matrix3()
+  ); //旋转矩阵的逆
   // 获得平移部分的坐标值
   let matTranslation = Cesium.Matrix4.getTranslation(
     transformMat,
@@ -107,7 +109,10 @@ let trasnlate = (transformin) => {
   );
 
   let transformation = Cesium.Transforms.eastNorthUpToFixedFrame(boxCenter); //以包围盒的中间建立一个矩阵
-  let transformRotation = Cesium.Matrix4.getMatrix3(transformation, new Cesium.Matrix3());
+  let transformRotation = Cesium.Matrix4.getMatrix3(
+    transformation,
+    new Cesium.Matrix3()
+  );
   // 获取齐次矩阵平移的值
   let transformTranslation = Cesium.Matrix4.getTranslation(
     transformation,
@@ -129,8 +134,12 @@ let trasnlate = (transformin) => {
     transformRotation,
     new Cesium.Matrix3()
   );
-  matToTransformation = Cesium.Matrix3.inverse(matToTransformation, new Cesium.Matrix3());
-  matToTransformation = Cesium.Matrix4.fromRotationTranslation(matToTransformation);
+  matToTransformation = Cesium.Matrix3.inverse(
+    matToTransformation,
+    new Cesium.Matrix3()
+  );
+  matToTransformation =
+    Cesium.Matrix4.fromRotationTranslation(matToTransformation);
 
   let rotationTranslation = Cesium.Matrix4.fromRotationTranslation(transformin);
 
@@ -140,39 +149,32 @@ let trasnlate = (transformin) => {
   tileset.modelMatrix = transformation;
   finalMatrix = Cesium.Matrix4.clone(tileset.modelMatrix);
 };
-let update3dtilesMaxtrix = (tileset) => {
-  let params={
-    tx:117.16, ty:32.71, tz:500000.0,
-    rx:20,ry:40,rz:90,
-    scale:10
-  }
-  var modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(
-    Cesium.Cartesian3.fromDegrees(params.tx, params.ty, params.tz)
-  );
+let params = {
+  tx: 121, //模型中心X轴坐标（经度，单位：十进制度）
+  ty: 32, //模型中心Y轴坐标（纬度，单位：十进制度）
+  tz: 10, //模型中心Z轴坐标（高度，单位：米）
+  rx: -100, //X轴（经度）方向旋转角度（单位：度）圆心应该是在地心，改动其中一个值的时候，不止变化了该变量，比如改动ry，模型的高度也有了显著上升
+  ry: 10, //Y轴（纬度）方向旋转角度（单位：度）
+  rz: 0, //Z轴（高程）方向旋转角度（单位：度）
+};
+let update3dtilesMaxtrix = function () {
+  //旋转
+  var mx = Cesium.Matrix3.fromRotationX(Cesium.Math.toRadians(params.rx));
+  var my = Cesium.Matrix3.fromRotationY(Cesium.Math.toRadians(params.ry));
+  var mz = Cesium.Matrix3.fromRotationZ(Cesium.Math.toRadians(params.rz));
+  var rotationX = Cesium.Matrix4.fromRotationTranslation(mx);
+  var rotationY = Cesium.Matrix4.fromRotationTranslation(my);
+  var rotationZ = Cesium.Matrix4.fromRotationTranslation(mz);
+  //平移
+  var position = Cesium.Cartesian3.fromDegrees(params.tx, params.ty, params.tz);
 
-  // 旋转
-  var rotationMatrix = Cesium.Matrix4.fromRotationTranslation(
-    Cesium.Matrix3.fromHeadingPitchRoll(
-      new Cesium.HeadingPitchRoll(
-        Cesium.Math.toRadians(params.rx),
-        Cesium.Math.toRadians(params.ry),
-        Cesium.Math.toRadians(params.rz)
-      )
-    )
-  );
-
-  var scale = params.scale || 0;
-  var scaleMatrix = new Cesium.Matrix4.fromScale(
-    new Cesium.Cartesian3(scale, scale, scale)
-  );
-
+  var m = Cesium.Transforms.eastNorthUpToFixedFrame(position);
   //旋转、平移矩阵相乘
-  Cesium.Matrix4.multiply(modelMatrix, rotationMatrix, modelMatrix);
-  Cesium.Matrix4.multiply(modelMatrix, scaleMatrix, modelMatrix);
+  Cesium.Matrix4.multiply(m, rotationX, m);
+  Cesium.Matrix4.multiply(m, rotationY, m);
+  Cesium.Matrix4.multiply(m, rotationZ, m);
   //赋值给tileset
-  tileset.root.transform = modelMatrix;
-  //缩放
-  viewer.flyTo(tileset);
+  tileset._root.transform = m;
 };
 let cursorStyle = ref("default"); //鼠标样式
 let boxCenter;
@@ -210,18 +212,18 @@ const initEarth = async () => {
   viewer._cesiumWidget._creditContainer.style.display = "none";
 
   tileset = new Cesium.Cesium3DTileset({
-    url: "http://124.71.153.0:31080/mmodel/model/Scene/3DTiles.json", //此处填写tileset url地址
+    url: "http://data.mars3d.cn/3dtiles/bim-daxue/tileset.json", //此处填写tileset url地址
     maximumScreenSpaceError: 1,
   });
   viewer.scene.primitives.add(tileset);
   viewer.zoomTo(tileset);
   tileset.readyPromise.then(function (tileset) {
-     update3dtilesMaxtrix(tileset)
+    update3dtilesMaxtrix();
     boxCenter = Cesium.Cartesian3.clone(tileset.boundingSphere.center); //获取包围盒中心
   });
 
   m = Cesium.Matrix4.clone(tileset.modelMatrix);
- 
+
   // viewer.camera.flyTo({
   //   destination: Cesium.Cartesian3.fromDegrees(117.16, 32.71, 5000000.0),
   // });
