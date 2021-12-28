@@ -29,7 +29,6 @@ let rotateY_Value = ref(1);
 let rotateZ_Value = ref(1);
 let scaleVal = ref(1);
 let model;
-let itemPositonMatrix;
 watch(rotateX_Value, (newV) => {
   rotateX(newV);
 });
@@ -52,7 +51,11 @@ let scale = (value) => {
 let rotateX = (anglex) => {
   let mat = model.modelMatrix;
   let m1 = Cesium.Matrix3.fromRotationX(Cesium.Math.toRadians(anglex));
-  model.modelMatrix = Cesium.Matrix4.multiplyByMatrix3(mat, m1, new Cesium.Matrix4());
+  model.modelMatrix = Cesium.Matrix4.multiplyByMatrix3(
+    mat,
+    m1,
+    new Cesium.Matrix4()
+  );
 };
 
 let rotateY = (angley) => {
@@ -95,9 +98,7 @@ const initEarth = async () => {
   viewer._cesiumWidget._creditContainer.style.display = "none";
 };
 
-let createPrimitive = () => {
-  
-};
+let createPrimitive = () => {};
 onMounted(() => {
   initEarth();
   createPrimitive();

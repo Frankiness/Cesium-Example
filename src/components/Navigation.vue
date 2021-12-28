@@ -31,6 +31,4 @@ const handleClick = (e) => {
     });
   }
 };
-
-watch();
 </script>
