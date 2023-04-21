@@ -20,6 +20,11 @@ const routes = [
     name: "水面映射",
     component: () => import("../views/waterReflect/index.vue"),
   },
+  {
+    path: "/flowShader",
+    name: "流动shader",
+    component: () => import("../views/flowShader/index.vue"),
+  },
 ];
 
 const router = createRouter({

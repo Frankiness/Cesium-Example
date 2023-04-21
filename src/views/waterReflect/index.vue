@@ -53,11 +53,11 @@ const initEarth = () => {
         m[1] = vec3(-a2.y*a1.x,a1.y*a2.y,a2.x);
         m[2] = vec3(a3.y*a1.x*a2.x+a1.y*a3.x,a1.x*a3.x-a1.y*a3.y*a2.x,a2.y*a3.y);
         return m;
-      }
+        }
       float hash( vec2 p ) {
         float h = dot(p,vec2(127.1,311.7));
         return fract(sin(h)*43758.5453123);
-      }
+        }
       float noise( in vec2 p ) {
         vec2 i = floor( p );
         vec2 f = fract( p );
@@ -66,20 +66,20 @@ const initEarth = () => {
                  hash( i + vec2(1.0,0.0) ), u.x),
               mix( hash( i + vec2(0.0,1.0) ),
                  hash( i + vec2(1.0,1.0) ), u.x), u.y);
-      }
+          }
       // lighting
       float diffuse(vec3 n,vec3 l,float p) {
         return pow(dot(n,l) * 0.4 + 0.6,p);
-      }
+        }
       float specular(vec3 n,vec3 l,vec3 e,float s) {
         float nrm = (s + 8.0) / (PI * 8.0);
         return pow(max(dot(reflect(e,n),l),0.0),s) * nrm;
-      }
+                }
       // sky
       vec3 getSkyColor(vec3 e) {
         e.y = max(e.y,0.0);
         return vec3(pow(1.0-e.y,2.0), 1.0-e.y, 0.6+(1.0-e.y)*0.4);
-      }
+                }
       // sea
       float sea_octave(vec2 uv, float choppy) {
         uv += noise(uv);
@@ -87,7 +87,7 @@ const initEarth = () => {
         vec2 swv = abs(cos(uv));
         wv = mix(wv,swv,wv);
         return pow(1.0-pow(wv.x * wv.y,0.65),choppy);
-      }
+            }
       float map(vec3 p) {
         float freq = SEA_FREQ;
         float amp = SEA_HEIGHT;
@@ -204,7 +204,7 @@ const initEarth = () => {
             v_normalEC = czm_normal * normal;                         // normal in eye coordinates
             gl_Position = czm_modelViewProjectionRelativeToEye * p;
         }
-                    `,
+      `,
     fragmentShaderSource: `
       varying vec2 v_st;
       varying vec3 v_positionEC;
@@ -219,7 +219,7 @@ const initEarth = () => {
         vec4 color = czm_getMaterial(v_st);
         gl_FragColor = color;
       }
-                `,
+    `,
   });
 
   let modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(
