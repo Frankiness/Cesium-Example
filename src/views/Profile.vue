@@ -14,7 +14,7 @@ import * as Cesium from "cesium";
 import Profile from "../utils/profile";
 import ButtonGroup from "../components/ButtonGroup.vue";
 
-const terrainProvider = Cesium.createWorldTerrainAsync();
+const terrainProvider = Cesium.createWorldTerrain();
 
 const initEarth = () => {
   const viewer = new Cesium.Viewer("cesium-container", {

@@ -1,4 +1,4 @@
-export const source = `
+export const source: string = `
   vec3 palette(float d){
     return mix(vec3(0.2,0.7,0.9),vec3(1.,0.,1.),d);
   }
@@ -62,7 +62,7 @@ export const source = `
     }
 `;
 
-export const vertexShader = `
+export const vertexShader: string = `
   attribute vec3 position3DHigh;
   attribute vec3 position3DLow;
   attribute float batchId;
@@ -79,7 +79,7 @@ export const vertexShader = `
       gl_Position = czm_modelViewProjectionRelativeToEye * p;
   }
 `;
-export const fragmentShader = `
+export const fragmentShader: string = `
   varying vec2 v_st;
   varying vec3 v_positionEC;
   varying vec3 v_normalEC;
