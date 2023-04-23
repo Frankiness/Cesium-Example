@@ -5,7 +5,7 @@
 <script setup>
 import { onMounted } from "vue";
 import * as Cesium from "cesium";
-import { source, vertexShader, fragmentShader } from "./shader.js";
+import { source, vertexShader, fragmentShader } from "./shader.ts";
 
 const initEarth = () => {
   var viewer = new Cesium.Viewer("cesium-container");
